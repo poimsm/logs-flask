@@ -1,0 +1,41 @@
+# Log files
+*.log
+logs
+
+# Applications
+*.app
+*.exe
+*.war
+
+# Large media files
+*.mp4
+*.tiff
+*.avi
+*.flv
+*.mov
+*.wmv
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+
+# Archivos de certificados de seguridad (SSL)
+*.pem
+*.crt
+*.key
+
+
+# Custom
+# config/constants.py
+# queues/contrato/lab
