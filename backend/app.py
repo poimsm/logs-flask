@@ -1,11 +1,15 @@
 from flask import Flask, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.dialects.postgresql import UUID
+from flask_cors import CORS
 import uuid
 from datetime import datetime
 import os
 
 app = Flask(__name__)
+
+# Habilitar CORS para todas las rutas
+CORS(app)
 
 # Configuración de la base de datos PostgreSQL usando las variables de entorno del archivo .env
 app.config['SQLALCHEMY_DATABASE_URI'] = f"postgresql://{os.getenv('DB_USER')}:{os.getenv('DB_PASS')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
@@ -27,8 +31,10 @@ class Device(db.Model):
 class Log(db.Model):
     __tablename__ = 'logs'
     id = db.Column(db.Integer, primary_key=True)
-    value = db.Column(db.String(200), nullable=False)
-    screen_size = db.Column(db.String(50), nullable=False)
+    value = db.Column(db.String(50), nullable=False)
+    screen_size = db.Column(db.String(50), nullable=True)
+    lang = db.Column(db.String(50), nullable=True)
+    base_url = db.Column(db.String(50), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     device_id = db.Column(UUID(as_uuid=True), db.ForeignKey('devices.id'), nullable=False)
 
@@ -54,22 +60,24 @@ def add_log(device_id):
     
     value = request.json.get('value')
     screen_size = request.json.get('screen_size')
+    lang = request.json.get('lang')
+    base_url = request.json.get('base_url')
 
-    if not value or not screen_size:
-        return jsonify({"error": "Missing value or screen_size"}), 400
+    if not value:
+        return jsonify({"error": "Missing field value"}), 400
 
-    new_log = Log(value=value, screen_size=screen_size, device_id=device.id)
+    new_log = Log(value=value, screen_size=screen_size, lang=lang, base_url=base_url, device_id=device.id)
     db.session.add(new_log)
     db.session.commit()
 
     return jsonify({"message": "Log added successfully!", "log_id": new_log.id})
 
 # Ruta para obtener todos los logs de un dispositivo
-@app.route('/device-logs/<uuid:device_id>', methods=['GET'])
-def get_device_logs(device_id):
-    device = Device.query.get_or_404(device_id)
-    logs = [{"id": log.id, "value": log.value, "screen_size": log.screen_size, "created_at": log.created_at} for log in device.logs]
-    return jsonify({"device_id": str(device.id), "logs": logs})
+# @app.route('/device-logs/<uuid:device_id>', methods=['GET'])
+# def get_device_logs(device_id):
+#     device = Device.query.get_or_404(device_id)
+#     logs = [{"id": log.id, "value": log.value, "screen_size": log.screen_size, "created_at": log.created_at} for log in device.logs]
+#     return jsonify({"device_id": str(device.id), "logs": logs})
 
 # Endpoint para validar que el servidor está funcionando
 @app.route('/hello', methods=['GET'])
@@ -85,4 +93,3 @@ def hello():
 #             print(f"Error al crear las tablas: {e}")
 
 #     app.run(debug=True)
-
