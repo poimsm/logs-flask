@@ -22,7 +22,9 @@ db = SQLAlchemy(app)
 class Device(db.Model):
     __tablename__ = 'devices'
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, nullable=False)
-    name = db.Column(db.String(80), nullable=False)
+    name = db.Column(db.String(50), nullable=False)
+    comment = db.Column(db.String(100), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
     def __repr__(self):
         return f'<Device {self.name}>'
@@ -56,21 +58,39 @@ def create_device():
 # Ruta para agregar un nuevo log a un dispositivo
 @app.route('/add-log/<uuid:device_id>', methods=['POST'])
 def add_log(device_id):
-    device = Device.query.get_or_404(device_id)
+    device = Device.query.get(device_id)
     
+    if not device:
+        device_name = request.json.get('name', 'Unnamed Device')
+        device = Device(id=device_id, name=device_name)
+        db.session.add(device)
+        db.session.commit()
+        uuid_returned = str(device.id)
+    else:
+        uuid_returned = None
+
     value = request.json.get('value')
     screen_size = request.json.get('screen_size')
     lang = request.json.get('lang')
     base_url = request.json.get('base_url')
 
     if not value:
-        return jsonify({"error": "Missing field value"}), 400
+        return jsonify({"error": "Missing field 'value'"}), 400
 
-    new_log = Log(value=value, screen_size=screen_size, lang=lang, base_url=base_url, device_id=device.id)
+    new_log = Log(
+        value=value, 
+        screen_size=screen_size, 
+        lang=lang, 
+        base_url=base_url, 
+        device_id=device.id
+    )
+    
     db.session.add(new_log)
     db.session.commit()
 
-    return jsonify({"message": "Log added successfully!", "log_id": new_log.id})
+    return jsonify({"uuid": uuid_returned, "message": "Log added successfully!"})
+
+    
 
 # Ruta para obtener todos los logs de un dispositivo
 # @app.route('/device-logs/<uuid:device_id>', methods=['GET'])
